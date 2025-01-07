@@ -1,11 +1,13 @@
 import base64
 import time
 from typing import Any
+from dotenv import load_dotenv
+import os
 
 import openai
 from openai import OpenAI
 
-from ..types import MessageList, SamplerBase
+from utils._types import MessageList, SamplerBase
 
 OPENAI_SYSTEM_MESSAGE_API = "You are a helpful assistant."
 OPENAI_SYSTEM_MESSAGE_CHATGPT = (
@@ -26,9 +28,10 @@ class ChatCompletionSampler(SamplerBase):
         temperature: float = 0.5,
         max_tokens: int = 1024,
     ):
+        load_dotenv()
         self.api_key_name = "OPENAI_API_KEY"
+        openai.api_key = os.getenv('OPENAI_API_KEY')
         self.client = OpenAI()
-        # using api_key=os.environ.get("OPENAI_API_KEY")  # please set your API_KEY
         self.model = model
         self.system_message = system_message
         self.temperature = temperature
