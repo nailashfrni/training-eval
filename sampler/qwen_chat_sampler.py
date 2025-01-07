@@ -1,6 +1,5 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
-import time
 from typing import Any
 
 QWEN_SYSTEM_MESSAGE = (
@@ -17,7 +16,6 @@ class QwenApplyChatSampler:
         self,
         model: str = "Qwen/Qwen2.5-0.5B",
         system_message: str | None = None,
-        temperature: float = 0.5,
         max_tokens: int = 256,
     ):
         self.model_name = model
@@ -28,7 +26,6 @@ class QwenApplyChatSampler:
         )
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.system_message = system_message
-        self.temperature = temperature
         self.max_tokens = max_tokens
 
     def _pack_message(self, role: str, content: Any):
@@ -45,7 +42,6 @@ class QwenApplyChatSampler:
         """
         torch.cuda.empty_cache()
         if self.system_message:
-            # Prepend system message if defined
             message_list = [self._pack_message("system", self.system_message)] + message_list
 
         text = self.tokenizer.apply_chat_template(
@@ -55,23 +51,18 @@ class QwenApplyChatSampler:
         )
 
         try:
-            # Prepare inputs and move to model's device
             model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
 
-            # Generate response
             generated_ids = self.model.generate(
                 **model_inputs,
-                temperature=self.temperature,
                 max_new_tokens=self.max_tokens
             )
 
-            # Extract newly generated tokens only
             generated_ids = [
                 output_ids[len(input_ids):]
                 for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
             ]
 
-            # Decode the response
             response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
             return response
 
@@ -79,4 +70,3 @@ class QwenApplyChatSampler:
             print(f"Error during generation: {e}")
             torch.cuda.empty_cache()
             raise e
-
