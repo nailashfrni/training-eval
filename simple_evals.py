@@ -83,9 +83,9 @@ def main():
         # ),
         # qwen models
         "qwen": QwenApplyChatSampler(
-            model="Qwen/Qwen2.5-7B-Instruct",
+            model="Qwen/Qwen2.5-0.5B",
             system_message=QWEN_SYSTEM_MESSAGE,
-            max_tokens=2048,
+            max_tokens=256,
         )
     }
 
