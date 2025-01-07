@@ -20,13 +20,13 @@ class QwenApplyChatSampler(SamplerBase):
         temperature: float = 0.5,
         max_tokens: int = 1024,
     ):
+        self.model = model
         self.client = AutoModelForCausalLM.from_pretrained(
                     self.model,
                     torch_dtype="auto",
                     device_map="auto"
                 )
         self.tokenizer = AutoTokenizer.from_pretrained(self.model)
-        self.model = model
         self.system_message = system_message
         self.temperature = temperature
         self.max_tokens = max_tokens
