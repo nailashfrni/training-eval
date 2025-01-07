@@ -119,9 +119,9 @@ class MMLUEval(Eval):
         self.mode = mode
         df_path = ""
         if mode == Mode.HALF:
-            df_path = './data/mmlu_half'
+            df_path = 'training-eval/data/mmlu_half'
         else:
-            df_path = './data/mmlu_full'
+            df_path = 'training-eval/data/mmlu_full'
         if is_shuffle:
             df_path += '_shuffled'
         

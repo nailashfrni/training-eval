@@ -3,15 +3,15 @@ import argparse
 import pandas as pd
 import utils.common as common
 from evals.mmlu_eval import MMLUEval
-from sampler.chat_completion_sampler import (
-    OPENAI_SYSTEM_MESSAGE_API,
-    OPENAI_SYSTEM_MESSAGE_CHATGPT,
-    ChatCompletionSampler,
-)
-# from sampler.qwen_chat_sampler import (
-#     QWEN_SYSTEM_MESSAGE,
-#     QwenApplyChatSampler
+# from sampler.chat_completion_sampler import (
+#     OPENAI_SYSTEM_MESSAGE_API,
+#     OPENAI_SYSTEM_MESSAGE_CHATGPT,
+#     ChatCompletionSampler,
 # )
+from sampler.qwen_chat_sampler import (
+    QWEN_SYSTEM_MESSAGE,
+    QwenApplyChatSampler
+)
 from utils._types import Mode
 
 from datetime import datetime
@@ -48,45 +48,45 @@ def main():
 
     models = {
         # chatgpt models:
-        "gpt-4o-2024-11-20_assistant": ChatCompletionSampler(
-            model="gpt-4o-2024-11-20",
-            system_message=OPENAI_SYSTEM_MESSAGE_API,
-            max_tokens=2048,
-        ),
-        "gpt-4o-2024-11-20_chatgpt": ChatCompletionSampler(
-            model="gpt-4o-2024-11-20",
-            system_message=OPENAI_SYSTEM_MESSAGE_CHATGPT,
-            max_tokens=2048,
-        ),
-        "gpt-4-turbo-2024-04-09_assistant": ChatCompletionSampler(
-            model="gpt-4-turbo-2024-04-09",
-            system_message=OPENAI_SYSTEM_MESSAGE_API,
-        ),
-        "gpt-4-turbo-2024-04-09_chatgpt": ChatCompletionSampler(
-            model="gpt-4-turbo-2024-04-09",
-            system_message=OPENAI_SYSTEM_MESSAGE_CHATGPT,
-        ),
-        "gpt-4o_assistant": ChatCompletionSampler(
-            model="gpt-4o",
-            system_message=OPENAI_SYSTEM_MESSAGE_API,
-            max_tokens=2048,
-        ),
-        "gpt-4o_chatgpt": ChatCompletionSampler(
-            model="gpt-4o",
-            system_message=OPENAI_SYSTEM_MESSAGE_CHATGPT,
-            max_tokens=2048,
-        ),
-        "gpt-4o-mini": ChatCompletionSampler(
-            model="gpt-4o-mini-2024-07-18",
-            system_message=OPENAI_SYSTEM_MESSAGE_API,
-            max_tokens=2048,
-        ),
-        # qwen models
-        # "qwen": QwenApplyChatSampler(
-        #     model="Qwen/Qwen2.5-7B-Instruct",
-        #     system_message=QWEN_SYSTEM_MESSAGE,
+        # "gpt-4o-2024-11-20_assistant": ChatCompletionSampler(
+        #     model="gpt-4o-2024-11-20",
+        #     system_message=OPENAI_SYSTEM_MESSAGE_API,
         #     max_tokens=2048,
-        # )
+        # ),
+        # "gpt-4o-2024-11-20_chatgpt": ChatCompletionSampler(
+        #     model="gpt-4o-2024-11-20",
+        #     system_message=OPENAI_SYSTEM_MESSAGE_CHATGPT,
+        #     max_tokens=2048,
+        # ),
+        # "gpt-4-turbo-2024-04-09_assistant": ChatCompletionSampler(
+        #     model="gpt-4-turbo-2024-04-09",
+        #     system_message=OPENAI_SYSTEM_MESSAGE_API,
+        # ),
+        # "gpt-4-turbo-2024-04-09_chatgpt": ChatCompletionSampler(
+        #     model="gpt-4-turbo-2024-04-09",
+        #     system_message=OPENAI_SYSTEM_MESSAGE_CHATGPT,
+        # ),
+        # "gpt-4o_assistant": ChatCompletionSampler(
+        #     model="gpt-4o",
+        #     system_message=OPENAI_SYSTEM_MESSAGE_API,
+        #     max_tokens=2048,
+        # ),
+        # "gpt-4o_chatgpt": ChatCompletionSampler(
+        #     model="gpt-4o",
+        #     system_message=OPENAI_SYSTEM_MESSAGE_CHATGPT,
+        #     max_tokens=2048,
+        # ),
+        # "gpt-4o-mini": ChatCompletionSampler(
+        #     model="gpt-4o-mini-2024-07-18",
+        #     system_message=OPENAI_SYSTEM_MESSAGE_API,
+        #     max_tokens=2048,
+        # ),
+        # qwen models
+        "qwen": QwenApplyChatSampler(
+            model="Qwen/Qwen2.5-7B-Instruct",
+            system_message=QWEN_SYSTEM_MESSAGE,
+            max_tokens=2048,
+        )
     }
 
     if args.list_models:
