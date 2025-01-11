@@ -133,7 +133,7 @@ class MMLUEval(Eval):
             self.df = df[df['Group'].isin(groups)]     
         else:
             self.df = df
-        self.df = self.df.iloc[:5] #test
+        # self.df = self.df.iloc[:5] #test
         self.df['Extracted Answer'] = 'invalid'
         self.df['Score'] = 0.0
         examples = [row.to_dict() for _, row in self.df.iterrows()]
@@ -148,7 +148,7 @@ class MMLUEval(Eval):
                     content=format_multichoice_question(row, self.mode), role="user"
                 )
             ]
-            response_text, ppl = sampler(prompt_messages)
+            response_text, conf, ppl = sampler(prompt_messages)
             response_text = normalize_response(response_text)
             extracted_answer = None
             for answer_regex in MULTILINGUAL_ANSWER_REGEXES:
@@ -161,7 +161,9 @@ class MMLUEval(Eval):
                 self.df.loc[self.df.id == row['id'], 'Extracted Answer'] = extracted_answer
             if ppl:
                 if 'Perplexity' not in self.df.columns:
+                    self.df['Confidence'] = 0.0
                     self.df['Perplexity'] = 0.0
+                self.df.loc[self.df.id == row['id'], 'Confidence'] = conf
                 self.df.loc[self.df.id == row['id'], 'Perplexity'] = ppl
             score = 1.0 if extracted_answer == row["Answer"] else 0.0
             self.df.loc[self.df.id == row['id'], 'Score'] = score

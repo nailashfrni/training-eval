@@ -72,7 +72,7 @@ class ClaudeCompletionSampler(SamplerBase):
                     temperature=self.temperature,
                     messages=message_list,
                 )
-                return message.content[0].text, 0
+                return message.content[0].text, 0, 0
             except anthropic.RateLimitError as e:
                 exception_backoff = 2**trial  # expontial back off
                 print(

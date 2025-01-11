@@ -45,12 +45,14 @@ class QwenApplyChatSampler:
         """
         try:
             options = ["A", "B", "C", "D"]
-
             option_scores = []
+
             for option in options:
                 torch.cuda.empty_cache()
+
                 opt_message_list = message_list.copy()
                 opt_message_list[0]['content'] += ' ' + option
+                
                 if self.system_message:
                     opt_message_list = [self._pack_message("system", self.system_message)] + opt_message_list
 
@@ -60,9 +62,9 @@ class QwenApplyChatSampler:
                     add_generation_prompt=True
                 )
                 model_input = self.tokenizer(text, return_tensors="pt").to(self.model.device)
+
                 with torch.no_grad():
-                    outputs = self.model(**model_input)
-                
+                    outputs = self.model(**model_input)                
                 logits = outputs.logits[:, -1, :]
                 option_id = self.tokenizer.convert_tokens_to_ids(option)
                 log_prob = F.log_softmax(logits, dim=-1)[0, option_id].item()
@@ -72,8 +74,19 @@ class QwenApplyChatSampler:
             best_option_text = best_option[0]
             best_log_prob = best_option[1]
 
-            ppl = torch.exp(torch.tensor(best_log_prob))
-            return best_option_text, ppl.item()
+            # perplexity calculation
+            full_text = message_list[0]['content'] + ' ' + best_option_text
+            model_input_full = self.tokenizer(full_text, return_tensors="pt").to(self.model.device)
+
+            with torch.no_grad():
+                outputs_full = self.model(**model_input_full)
+            
+            logits_full = outputs_full.logits 
+            log_probs_full = F.log_softmax(logits_full, dim=-1)
+            avg_log_prob_full = log_probs_full.mean()
+            ppl = torch.exp(-avg_log_prob_full).item()
+
+            return best_option_text, best_log_prob, ppl
 
         except Exception as e:
             print(f"Error during generation: {e}")
