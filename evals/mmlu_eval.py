@@ -133,7 +133,7 @@ class MMLUEval(Eval):
             self.df = df[df['Group'].isin(groups)]     
         else:
             self.df = df
-        # self.df = self.df.iloc[:5] #test
+        self.df = self.df.iloc[:5] #test
         self.df['Extracted Answer'] = 'invalid'
         self.df['Score'] = 0.0
         examples = [row.to_dict() for _, row in self.df.iterrows()]
