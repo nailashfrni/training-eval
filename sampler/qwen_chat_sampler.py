@@ -3,6 +3,8 @@ import torch
 from typing import Any
 import torch
 import torch.nn.functional as F
+from utils.common import softmax
+import numpy as np
 
 QWEN_SYSTEM_MESSAGE = (
     "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."
@@ -45,37 +47,30 @@ class QwenApplyChatSampler:
         """
         try:
             options = ["A", "B", "C", "D"]
-            option_scores = []
+            option_ids = [self.tokenizer.encode(option)[-1] for option in options]
 
-            for option in options:
-                torch.cuda.empty_cache()
+            if self.system_message:
+                message_list = [self._pack_message("system", self.system_message)] + message_list
 
-                opt_message_list = message_list.copy()
-                opt_message_list[0]['content'] += ' ' + option
-                
-                if self.system_message:
-                    opt_message_list = [self._pack_message("system", self.system_message)] + opt_message_list
+            text = self.tokenizer.apply_chat_template(
+                message_list,
+                tokenize=False,
+                add_generation_prompt=True
+            )
+            inputs = self.tokenizer(text, return_tensors="pt").to(self.model.device)
 
-                text = self.tokenizer.apply_chat_template(
-                    opt_message_list,
-                    tokenize=False,
-                    add_generation_prompt=True
-                )
-                model_input = self.tokenizer(text, return_tensors="pt").to(self.model.device)
+            with torch.no_grad():
+                outputs = self.model(**inputs, labels=inputs["input_ids"])
+            
+            last_token_logits = outputs.logits[:, -1, :]
+            option_logits = last_token_logits[:, option_ids].detach().cpu().numpy()
+            probabilities = softmax(option_logits[0])
 
-                with torch.no_grad():
-                    outputs = self.model(**model_input)                
-                logits = outputs.logits[:, -1, :]
-                option_id = self.tokenizer.convert_tokens_to_ids(option)
-                log_prob = F.log_softmax(logits, dim=-1)[0, option_id].item()
-                option_scores.append((option, log_prob))
-
-            best_option = max(option_scores, key=lambda x: x[1])
-            best_option_text = best_option[0]
-            best_log_prob = best_option[1]
+            best_index = np.argmax(probabilities)
+            best_option = options[best_index]
 
             # perplexity calculation
-            full_text = message_list[0]['content'] + ' ' + best_option_text
+            full_text = message_list[1]['content'] + ' ' + best_option
             model_input_full = self.tokenizer(full_text, return_tensors="pt").to(self.model.device)
 
             with torch.no_grad():
@@ -86,7 +81,7 @@ class QwenApplyChatSampler:
             avg_log_prob_full = log_probs_full.mean()
             ppl = torch.exp(-avg_log_prob_full).item()
 
-            return best_option_text, best_log_prob, ppl
+            return best_option, probabilities[best_index], ppl
 
         except Exception as e:
             print(f"Error during generation: {e}")

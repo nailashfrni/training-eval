@@ -223,6 +223,12 @@ def aggregate_results(
         df_result=df_result
     )
 
+def softmax(x):
+    z = x - max(x)
+    numerator = np.exp(z)
+    denominator = np.sum(numerator)
+    softmax = numerator/denominator
+    return softmax
 
 def map_with_progress(f: callable, xs: list[Any], num_threads: int = 50):
     """
