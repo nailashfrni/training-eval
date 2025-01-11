@@ -6,6 +6,7 @@ https://arxiv.org/abs/2009.03300
 
 import random
 import re
+import os
 
 # import blobfile as bf
 import pandas
@@ -119,9 +120,9 @@ class MMLUEval(Eval):
         self.mode = mode
         df_path = ""
         if mode == Mode.HALF:
-            df_path = 'training-eval/data/mmlu_half'
+            df_path = '/kaggle/working/training-eval/data/mmlu_half'
         else:
-            df_path = 'training-eval/data/mmlu_full'
+            df_path = '/kaggle/working/training-eval/data/mmlu_full'
         if is_shuffle:
             df_path += '_shuffled'
         
@@ -132,7 +133,7 @@ class MMLUEval(Eval):
             self.df = df[df['Group'].isin(groups)]     
         else:
             self.df = df
-
+        self.df = self.df.iloc[:5] #test
         self.df['Extracted Answer'] = 'invalid'
         self.df['Score'] = 0.0
         examples = [row.to_dict() for _, row in self.df.iterrows()]
@@ -147,7 +148,8 @@ class MMLUEval(Eval):
                     content=format_multichoice_question(row, self.mode), role="user"
                 )
             ]
-            response_text = normalize_response(sampler(prompt_messages))
+            response_text, ppl = sampler(prompt_messages)
+            response_text = normalize_response(response_text)
             extracted_answer = None
             for answer_regex in MULTILINGUAL_ANSWER_REGEXES:
                 regex = MULTILINGUAL_ANSWER_PATTERN_TEMPLATE.format(answer_regex)
@@ -157,6 +159,10 @@ class MMLUEval(Eval):
                     break
             if extracted_answer:
                 self.df.loc[self.df.id == row['id'], 'Extracted Answer'] = extracted_answer
+            if ppl:
+                if 'Perplexity' not in self.df.columns:
+                    self.df['Perplexity'] = 0.0
+                self.df.loc[self.df.id == row['id'], 'Perplexity'] = ppl
             score = 1.0 if extracted_answer == row["Answer"] else 0.0
             self.df.loc[self.df.id == row['id'], 'Score'] = score
             html = common.jinja_env.from_string(HTML_JINJA).render(
@@ -171,7 +177,7 @@ class MMLUEval(Eval):
             convo = prompt_messages + [dict(content=response_text, role="assistant")]
             category = subject2category.get(row["Subject"], "other")
             return SingleEvalResult(
-                html=html, score=score, metrics={category: score}, convo=convo
+                html=html, score=score, metrics={category: score, category + ' PPL': ppl}, convo=convo
             )
 
         results = common.map_with_progress(fn, self.examples)

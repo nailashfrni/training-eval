@@ -1,6 +1,8 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 from typing import Any
+import torch
+import torch.nn.functional as F
 
 QWEN_SYSTEM_MESSAGE = (
     "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."
@@ -34,37 +36,44 @@ class QwenApplyChatSampler:
 
     def __call__(self, message_list: list[dict]) -> str:
         """
-        Generate a response based on the provided message list.
+        Generate a response based on the highest likelihood for multiple-choice questions
+        and compute perplexity for the selected answer.
         Args:
             message_list (list[dict]): List of messages with "role" and "content".
         Returns:
-            str: The generated response.
+            str: The selected response and its perplexity.
         """
-        torch.cuda.empty_cache()
-        if self.system_message:
-            message_list = [self._pack_message("system", self.system_message)] + message_list
-
-        text = self.tokenizer.apply_chat_template(
-            message_list,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-
         try:
-            model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
+            options = ["A", "B", "C", "D"]
 
-            generated_ids = self.model.generate(
-                **model_inputs,
-                max_new_tokens=self.max_tokens
-            )
+            option_scores = []
+            for option in options:
+                torch.cuda.empty_cache()
+                opt_message_list = message_list.copy()
+                opt_message_list[0]['content'] += ' ' + option
+                if self.system_message:
+                    opt_message_list = [self._pack_message("system", self.system_message)] + opt_message_list
 
-            generated_ids = [
-                output_ids[len(input_ids):]
-                for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
-            ]
+                text = self.tokenizer.apply_chat_template(
+                    opt_message_list,
+                    tokenize=False,
+                    add_generation_prompt=True
+                )
+                model_input = self.tokenizer(text, return_tensors="pt").to(self.model.device)
+                with torch.no_grad():
+                    outputs = self.model(**model_input)
+                
+                logits = outputs.logits[:, -1, :]
+                option_id = self.tokenizer.convert_tokens_to_ids(option)
+                log_prob = F.log_softmax(logits, dim=-1)[0, option_id].item()
+                option_scores.append((option, log_prob))
 
-            response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-            return response
+            best_option = max(option_scores, key=lambda x: x[1])
+            best_option_text = best_option[0]
+            best_log_prob = best_option[1]
+
+            ppl = torch.exp(torch.tensor(best_log_prob))
+            return best_option_text, ppl.item()
 
         except Exception as e:
             print(f"Error during generation: {e}")
