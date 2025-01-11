@@ -46,6 +46,7 @@ class QwenApplyChatSampler:
             str: The selected response and its perplexity.
         """
         try:
+            torch.cuda.empty_cache()
             options = ["A", "B", "C", "D"]
             option_ids = [self.tokenizer.encode(option)[-1] for option in options]
 
@@ -73,6 +74,7 @@ class QwenApplyChatSampler:
             full_text = message_list[1]['content'] + ' ' + best_option
             model_input_full = self.tokenizer(full_text, return_tensors="pt").to(self.model.device)
 
+            torch.cuda.empty_cache()
             with torch.no_grad():
                 outputs_full = self.model(**model_input_full)
             
