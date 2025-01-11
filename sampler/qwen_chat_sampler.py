@@ -71,6 +71,7 @@ class QwenApplyChatSampler:
 
             # perplexity calculation
             full_text = message_list[1]['content'] + ' ' + best_option
+            print(full_text)
             model_input_full = self.tokenizer(full_text, return_tensors="pt").to(self.model.device)
 
             with torch.no_grad():
