@@ -4,10 +4,12 @@ import plotly.express as px
 import numpy as np
 import os
 import plotly.io as pio
+from evals.mmlu_eval import subject2category
 pio.templates.default = "plotly_dark"
 
 MODES = ['full', 'half', 'option only', 'question only']
 GROUPS = ['stem', 'social science', 'humanities', 'other']
+SUBJECTS = list(subject2category.keys())
 MODE_COLORS = {
     'full': '#636EFA',      
     'half': '#EF553B',      
@@ -161,3 +163,33 @@ fig = px.bar(
 )
 st.plotly_chart(fig, use_container_width=True)
 st.write('Question only tidak ada karena tidak menggunakan option sehingga proses shuffle option tidak akan berpengaruh.')
+
+st.subheader('Analysis per Subject')
+mode_accuracy_df = pd.DataFrame()
+
+for m in MODES:
+    mode_df = dfs['original'][m]
+    subject_scores = mode_df.groupby('Subject').agg({"Score": "mean"})\
+                            .reset_index().sort_values(by='Score', ascending=False)
+    subject_scores['Mode'] = m 
+    mode_accuracy_df = pd.concat([mode_accuracy_df, subject_scores])
+subject_selection = st.pills("Subject", SUBJECTS, selection_mode="single")
+if subject_selection:
+    subject_scores_filtered = mode_accuracy_df[mode_accuracy_df['Subject'] == subject_selection]
+    # Create a bar chart comparing accuracy across modes for the selected subject
+    fig = px.bar(
+        subject_scores_filtered,
+        x="Mode",
+        y="Score", 
+        color="Mode",
+        title=f"Accuracy for {subject_selection.capitalize()} Across Modes",
+        labels={"Mode": "Mode", "Score": "Accuracy"},
+        color_discrete_map=MODE_COLORS
+    )
+
+    # Step 4: Display the plot
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Optional: Display the average accuracy for the selected subject across all modes
+    avg_accuracy = subject_scores_filtered['Score'].mean()
+    st.write(f'Average accuracy for {subject_selection} across modes: {avg_accuracy:.4f}')

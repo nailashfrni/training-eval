@@ -153,7 +153,7 @@ class MMLUEval(Eval):
                 regex = MULTILINGUAL_ANSWER_PATTERN_TEMPLATE.format(answer_regex)
                 match = re.search(regex, response_text)
                 if match:
-                    extracted_answer = normalize_extracted_answer(match.group(1))
+                    extracted_answer = normalize_extracted_answer(match.group(0))
                     break
             if extracted_answer:
                 self.df.loc[self.df.id == row['id'], 'Extracted Answer'] = extracted_answer

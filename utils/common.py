@@ -9,8 +9,12 @@ from tqdm import tqdm
 
 from utils._types import EvalResult, Message, SamplerBase, SingleEvalResult, Mode
 
-QUERY_TEMPLATE_MULTICHOICE = """
+QUERY_TEMPLATE_COT_MULTICHOICE = """
 Answer the following multiple choice question. The last line of your response must be ALWAYS of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.
+"""
+
+QUERY_TEMPLATE_MULTICHOICE = """
+The following are multiple choice questions. Your response must only be one of the options (A, B, C, D). Only response with letter.
 """
 
 QUERY_QUESTION ="""
@@ -24,13 +28,16 @@ C) {C}
 D) {D}
 """.strip()
 
-ANSWER_PATTERN_MULTICHOICE = r"(?i)Answer\s*:\s*([A-D])"
-ANSWER_PATTERN = r"(?i)Answer\s*:\s*([^\n]+)"
+# ANSWER_PATTERN_MULTICHOICE = r"(?i)Answer\s*:\s*([A-D])"
+# ANSWER_PATTERN = r"(?i)Answer\s*:\s*([^\n]+)"
+ANSWER_PATTERN_MULTICHOICE = r"\s*([A-D])"
+ANSWER_PATTERN = r"\s*([^\n]+)"
 MULTILINGUAL_ANSWER_PATTERN_TEMPLATE = (
     "(?i){}\s*([A-D]|[أ-د]|[অ]|[ব]|[ড]|[ঢ]|[Ａ]|[Ｂ]|[Ｃ]|[Ｄ])"
 )
 # All the different ways "Answer" is written in different languages
 MULTILINGUAL_ANSWER_REGEXES = [
+    "", # for direct answer
     "Answer\s*:",
     "Answer\s*:​​​​​​",  # Korean invisible character
     "উত্তর\s*:",
@@ -155,14 +162,15 @@ HTML_JINJA = """
 
 def format_multichoice_question(row, mode: Mode):
     prompt = QUERY_TEMPLATE_MULTICHOICE
+    last_line = '\nAnswer:'
     if mode == Mode.OPTION_ONLY:
         prompt += QUERY_OPTION_TEMPLATE.format(**row)
-        return prompt
+        return prompt + last_line
     prompt += QUERY_QUESTION.format(**row)
     if mode == Mode.QUESTION_ONLY:
-        return prompt
+        return prompt + last_line
     prompt += QUERY_OPTION_TEMPLATE.format(**row)
-    return prompt
+    return prompt + last_line
 
 def check_equality(sampler: SamplerBase, expr1: str, expr2: str):
     prompt = EQUALITY_TEMPLATE % {"expression1": expr1, "expression2": expr2}
